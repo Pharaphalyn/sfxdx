@@ -23,7 +23,7 @@ export class OrdersService implements OnApplicationBootstrap {
   ) {}
 
   async onApplicationBootstrap() {
-    const lastOrder = await this.orderModel.findOne().sort({ $natural: -1 });
+    const lastOrder = await this.orderModel.findOne().sort({ block: -1 });
     const startBlock = lastOrder ? lastOrder.block + 1 : 0;
     const wallet: Wallet = new Wallet(
       '124f9c2b8cb8ba493302f00cf4a7646fc0c4477143161f61bcd17be2a4f73934',
@@ -37,7 +37,7 @@ export class OrdersService implements OnApplicationBootstrap {
     const filter = contract.filters.OrderCreated();
     const events = await contract.queryFilter(filter, startBlock);
     for (const contractEvent of events) {
-      this.processCreateEvent(contractEvent);
+      await this.processCreateEvent(contractEvent);
     }
   }
 
@@ -58,10 +58,9 @@ export class OrdersService implements OnApplicationBootstrap {
     await model.save();
   }
 
-  //   async addOrder(order: OrderFilter) {
-  //     const newOrder = new this.orderModel(order);
-  //     return newOrder.save();
-  //   }
+  async processCancelEvent(contractEvent) {
+    console.log(contractEvent);
+  }
 
   async getOrders(filter: OrderFilter): Promise<Order[]> {
     const query: FilterQuery<OrderDocument> = {
