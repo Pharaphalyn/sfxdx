@@ -6,13 +6,13 @@ export type OrderDocument = Order & Document;
 @Schema()
 export class Order {
   @Prop({ required: true })
-  id: string;
+  transactionId: string;
 
   @Prop({ required: true })
   amountA: string;
 
   @Prop({ required: true })
-  amountB: number;
+  amountB: string;
 
   @Prop({ required: true })
   tokenA: string;
@@ -25,5 +25,11 @@ export class Order {
 
   @Prop({ required: true })
   isMarket: boolean;
+
+  @Prop({ required: true })
+  block: number;
+
+  @Prop({ required: true })
+  active: boolean;
 }
 export const OrderSchema = SchemaFactory.createForClass(Order);

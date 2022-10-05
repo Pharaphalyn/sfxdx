@@ -15,11 +15,4 @@ export class OrdersController {
   getMatchingOrders(): string {
     return 'Matching Orders';
   }
-
-  //test
-  @Get('postOrder')
-  async postOrder(@Query() query: OrderFilter): Promise<string> {
-    await this.orderService.addOrder(query);
-    return '200 success';
-  }
 }
