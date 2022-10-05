@@ -1,6 +1,6 @@
 import { Injectable, OnApplicationBootstrap } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { FilterQuery, Model } from 'mongoose';
 import {
   EthersContract,
   Contract,
@@ -63,7 +63,25 @@ export class OrdersService implements OnApplicationBootstrap {
   //     return newOrder.save();
   //   }
 
-  async getOrders() {
-    return this.orderModel.find().exec();
+  async getOrders(filter: OrderFilter): Promise<Order[]> {
+    const query: FilterQuery<OrderDocument> = {
+      $or: [
+        {
+          tokenA: filter.tokenA || /^.*/,
+          tokenB: filter.tokenB || /^.*/,
+        },
+        {
+          tokenA: filter.tokenB || /^.*/,
+          tokenB: filter.tokenA || /^.*/,
+        },
+      ],
+      user: filter.user || /^.*/,
+    };
+    if (filter.active) {
+      query.active = true;
+    }
+    return this.orderModel
+      .find(query, undefined, { ignoreUndefined: false })
+      .exec();
   }
 }
