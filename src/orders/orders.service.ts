@@ -80,8 +80,6 @@ export class OrdersService implements OnApplicationBootstrap {
     if (filter.active) {
       query.active = true;
     }
-    return this.orderModel
-      .find(query, undefined, { ignoreUndefined: false })
-      .exec();
+    return this.orderModel.find(query).exec();
   }
 }
