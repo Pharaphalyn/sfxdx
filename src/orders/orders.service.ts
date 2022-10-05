@@ -34,10 +34,15 @@ export class OrdersService implements OnApplicationBootstrap {
       abi,
       wallet,
     );
-    const filter = contract.filters.OrderCreated();
-    const events = await contract.queryFilter(filter, startBlock);
+    let filter = contract.filters.OrderCreated();
+    let events = await contract.queryFilter(filter, startBlock);
     for (const contractEvent of events) {
       await this.processCreateEvent(contractEvent);
+    }
+    filter = contract.filters.OrderCancelled();
+    events = await contract.queryFilter(filter, 0);
+    for (const contractEvent of events) {
+      await this.processCancelEvent(contractEvent);
     }
   }
 
@@ -59,7 +64,14 @@ export class OrdersService implements OnApplicationBootstrap {
   }
 
   async processCancelEvent(contractEvent) {
-    console.log(contractEvent);
+    await this.orderModel
+      .updateOne(
+        { transactionId: contractEvent.args.id.toString() },
+        {
+          $set: { active: false },
+        },
+      )
+      .exec();
   }
 
   async getOrders(filter: OrderFilter): Promise<Order[]> {
