@@ -40,7 +40,7 @@ export class OrdersService implements OnApplicationBootstrap {
       await this.processCreateEvent(contractEvent);
     }
     filter = contract.filters.OrderCancelled();
-    events = await contract.queryFilter(filter, 0);
+    events = await contract.queryFilter(filter, startBlock);
     for (const contractEvent of events) {
       await this.processCancelEvent(contractEvent);
     }
@@ -88,7 +88,7 @@ export class OrdersService implements OnApplicationBootstrap {
       ],
       user: filter.user || /^.*/,
     };
-    if (filter.active) {
+    if (filter.active === 'true') {
       query.active = true;
     }
     return this.orderModel.find(query).exec();
