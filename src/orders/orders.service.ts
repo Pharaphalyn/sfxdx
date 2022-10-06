@@ -7,6 +7,7 @@ import {
   Wallet,
   BaseProvider,
   InjectEthersProvider,
+  BigNumber,
 } from 'nestjs-ethers';
 import { abi } from 'src/resources/contracts/order-controller';
 import { OrderEvent } from './interfaces/order-event.interface';
@@ -39,6 +40,11 @@ export class OrdersService implements OnApplicationBootstrap {
     for (const contractEvent of events) {
       await this.processCreateEvent(contractEvent);
     }
+    filter = contract.filters.OrderMatched();
+    events = await contract.queryFilter(filter, startBlock);
+    for (const contractEvent of events) {
+      await this.processMatchedEvent(contractEvent);
+    }
     filter = contract.filters.OrderCancelled();
     events = await contract.queryFilter(filter, startBlock);
     for (const contractEvent of events) {
@@ -53,6 +59,7 @@ export class OrdersService implements OnApplicationBootstrap {
       tokenA: args.tokenA,
       tokenB: args.tokenB,
       amountA: args.amountA.toString(),
+      amountLeftToFill: args.amountB.toString(),
       amountB: args.amountB.toString(),
       user: args.user,
       isMarket: args.isMarket,
@@ -72,6 +79,27 @@ export class OrdersService implements OnApplicationBootstrap {
         },
       )
       .exec();
+  }
+
+  async processMatchedEvent(contractEvent) {
+    const data = contractEvent.args;
+    const transaction = await this.orderModel
+      .findOne({ transactionId: data.matchedId })
+      .exec();
+    if (transaction) {
+      let leftToFill: BigNumber = BigNumber.from(transaction.amountLeftToFill);
+      leftToFill = leftToFill.sub(data.amountReceived);
+      const newData = { amountLeftToFill: leftToFill.toString(), active: true };
+      if (leftToFill.toString() === '0') {
+        newData.active = false;
+      }
+      await this.orderModel
+        .updateOne(
+          { transactionId: transaction.transactionId },
+          { $set: newData },
+        )
+        .exec();
+    }
   }
 
   async getOrders(filter: OrderFilter): Promise<Order[]> {

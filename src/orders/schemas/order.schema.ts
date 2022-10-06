@@ -12,6 +12,9 @@ export class Order {
   amountA: string;
 
   @Prop({ required: true })
+  amountLeftToFill: string;
+
+  @Prop({ required: true })
   amountB: string;
 
   @Prop({ required: true })
