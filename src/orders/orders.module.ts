@@ -4,6 +4,7 @@ import { OrdersController } from './orders.controller';
 import { OrdersService } from './orders.service';
 import { Order, OrderSchema } from './schemas/order.schema';
 import { EthersModule, RINKEBY_NETWORK } from 'nestjs-ethers';
+import { Constants as constants } from 'src/resources/config/constants';
 
 @Module({
   imports: [
@@ -11,8 +12,8 @@ import { EthersModule, RINKEBY_NETWORK } from 'nestjs-ethers';
     EthersModule.forRoot({
       network: RINKEBY_NETWORK,
       infura: {
-        projectId: 'd70f5340181b4f3b918707b0b8376e23',
-        projectSecret: '84931833cc9b4d65a0c80b1ddb423aeb',
+        projectId: constants.INFURA_ID,
+        projectSecret: constants.INFURA_SECRET,
       },
       useDefaultProvider: true,
     }),

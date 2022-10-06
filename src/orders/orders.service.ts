@@ -14,6 +14,7 @@ import { MatchFilter } from './interfaces/match-filter.interface';
 import { OrderEvent } from './interfaces/order-event.interface';
 import { OrderFilter } from './interfaces/order-filter.interface';
 import { Order, OrderDocument } from './schemas/order.schema';
+import { Constants as constants } from 'src/resources/config/constants';
 
 @Injectable()
 export class OrdersService implements OnApplicationBootstrap {
@@ -30,11 +31,11 @@ export class OrdersService implements OnApplicationBootstrap {
     const lastOrder = await this.orderModel.findOne().sort({ block: -1 });
     const startBlock = lastOrder ? lastOrder.block + 1 : 0;
     const wallet: Wallet = new Wallet(
-      '124f9c2b8cb8ba493302f00cf4a7646fc0c4477143161f61bcd17be2a4f73934',
+      constants.WALLET_KEY,
       this.ethersProvider,
     );
     this.contract = await this.ethers.create(
-      '0xC7dd7d4730d95AAE47F27c32eBb85b04fc78769E',
+      constants.CONTRACT_ADDRESS,
       abi,
       wallet,
     );
