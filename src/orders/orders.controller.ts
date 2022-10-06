@@ -1,4 +1,6 @@
 import { Controller, Get, Query } from '@nestjs/common';
+import { BigNumber } from 'nestjs-ethers';
+import { MatchFilter } from './interfaces/match-filter.interface';
 import { OrderFilter } from './interfaces/order-filter.interface';
 import { OrdersService } from './orders.service';
 import { Order } from './schemas/order.schema';
@@ -13,7 +15,7 @@ export class OrdersController {
   }
 
   @Get('getMatchingOrders')
-  getMatchingOrders(): string {
-    return 'Matching Orders';
+  getMatchingOrders(@Query() query: MatchFilter): Promise<BigNumber[]> {
+    return this.orderService.getMatchingOrders(query);
   }
 }

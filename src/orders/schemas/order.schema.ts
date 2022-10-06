@@ -18,6 +18,9 @@ export class Order {
   amountB: string;
 
   @Prop({ required: true })
+  price: string;
+
+  @Prop({ required: true })
   tokenA: string;
 
   @Prop({ required: true })

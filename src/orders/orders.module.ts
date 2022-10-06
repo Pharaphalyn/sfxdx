@@ -12,7 +12,7 @@ import { EthersModule, RINKEBY_NETWORK } from 'nestjs-ethers';
       network: RINKEBY_NETWORK,
       infura: {
         projectId: 'd70f5340181b4f3b918707b0b8376e23',
-        projectSecret: 'd70f5340181b4f3b918707b0b8376e23',
+        projectSecret: '84931833cc9b4d65a0c80b1ddb423aeb',
       },
       useDefaultProvider: true,
     }),

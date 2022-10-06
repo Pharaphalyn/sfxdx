@@ -10,12 +10,15 @@ import {
   BigNumber,
 } from 'nestjs-ethers';
 import { abi } from 'src/resources/contracts/order-controller';
+import { MatchFilter } from './interfaces/match-filter.interface';
 import { OrderEvent } from './interfaces/order-event.interface';
 import { OrderFilter } from './interfaces/order-filter.interface';
 import { Order, OrderDocument } from './schemas/order.schema';
 
 @Injectable()
 export class OrdersService implements OnApplicationBootstrap {
+  contract: Contract;
+
   constructor(
     private ethers: EthersContract,
     @InjectEthersProvider()
@@ -30,26 +33,30 @@ export class OrdersService implements OnApplicationBootstrap {
       '124f9c2b8cb8ba493302f00cf4a7646fc0c4477143161f61bcd17be2a4f73934',
       this.ethersProvider,
     );
-    const contract: Contract = await this.ethers.create(
+    this.contract = await this.ethers.create(
       '0xC7dd7d4730d95AAE47F27c32eBb85b04fc78769E',
       abi,
       wallet,
     );
-    let filter = contract.filters.OrderCreated();
-    let events = await contract.queryFilter(filter, startBlock);
+    let filter = this.contract.filters.OrderCreated();
+    console.log('Processing create events from block ' + startBlock);
+    let events = await this.contract.queryFilter(filter, startBlock);
     for (const contractEvent of events) {
       await this.processCreateEvent(contractEvent);
     }
-    filter = contract.filters.OrderMatched();
-    events = await contract.queryFilter(filter, startBlock);
+    filter = this.contract.filters.OrderMatched();
+    console.log('Processing match events from block ' + startBlock);
+    events = await this.contract.queryFilter(filter, startBlock);
     for (const contractEvent of events) {
       await this.processMatchedEvent(contractEvent);
     }
-    filter = contract.filters.OrderCancelled();
-    events = await contract.queryFilter(filter, startBlock);
+    filter = this.contract.filters.OrderCancelled();
+    console.log('Processing cancel events from block ' + startBlock);
+    events = await this.contract.queryFilter(filter, startBlock);
     for (const contractEvent of events) {
       await this.processCancelEvent(contractEvent);
     }
+    console.log('Up and running');
   }
 
   async processCreateEvent(contractEvent) {
@@ -60,6 +67,7 @@ export class OrdersService implements OnApplicationBootstrap {
       tokenB: args.tokenB,
       amountA: args.amountA.toString(),
       amountLeftToFill: args.amountB.toString(),
+      price: args.amountA.div(args.amountB).toString(),
       amountB: args.amountB.toString(),
       user: args.user,
       isMarket: args.isMarket,
@@ -119,6 +127,43 @@ export class OrdersService implements OnApplicationBootstrap {
     if (filter.active === 'true') {
       query.active = true;
     }
-    return this.orderModel.find(query).exec();
+    return this.orderModel.find(query, { block: 0 }).exec();
+  }
+
+  async getMatchingOrders(filter: MatchFilter): Promise<BigNumber[]> {
+    const query: FilterQuery<OrderDocument> = {
+      tokenA: filter.tokenB,
+      tokenB: filter.tokenA,
+      active: true,
+    };
+    if (filter.amountA === '0') {
+      query.isMarket = true;
+    } else {
+      query.price = {
+        $lte: BigNumber.from(filter.amountB)
+          .div(BigNumber.from(filter.amountA))
+          .toString(),
+      };
+    }
+    const documents = await this.orderModel.find(query).exec();
+    // console.log(
+    //   await this.contract.matchOrders(
+    //     documents.map((doc) => BigNumber.from(doc.transactionId)),
+    //     filter.tokenA,
+    //     filter.tokenB,
+    //     BigNumber.from(filter.amountA),
+    //     BigNumber.from(filter.amountB),
+    //     true,
+    //   ),
+    // );
+    // console.log(
+    //   await this.contract.createOrder(
+    //     filter.tokenA,
+    //     filter.tokenB,
+    //     BigNumber.from(filter.amountA),
+    //     BigNumber.from(filter.amountB),
+    //   ),
+    // );
+    return documents.map((doc) => BigNumber.from(doc.transactionId));
   }
 }
