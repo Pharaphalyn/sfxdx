@@ -45,19 +45,19 @@ export class OrdersService implements OnApplicationBootstrap {
     console.log('Processing create events from block ' + startBlock);
     await this.checkNewEvents(
       filterCreated,
-      this.processCreateEvent,
+      this.processCreateEvent.bind(this),
       startBlock,
     );
     console.log('Processing match events from block ' + startBlock);
     await this.checkNewEvents(
       filterMatched,
-      this.processMatchEvent,
+      this.processMatchEvent.bind(this),
       startBlock,
     );
     console.log('Processing cancel events from block ' + startBlock);
     await this.checkNewEvents(
       filterCancelled,
-      this.processCancelEvent,
+      this.processCancelEvent.bind(this),
       startBlock,
     );
     console.log('Up and running');
@@ -73,7 +73,7 @@ export class OrdersService implements OnApplicationBootstrap {
     );
   }
 
-  async processCreateEvent(contractEvent, orderModel) {
+  async processCreateEvent(contractEvent) {
     const args: OrderEvent = contractEvent.args as unknown as OrderEvent;
     const order: Order = {
       transactionId: args.id.toString(),
@@ -88,35 +88,44 @@ export class OrdersService implements OnApplicationBootstrap {
       block: contractEvent.blockNumber,
       active: true,
     };
-    const model = new orderModel(order);
+    const model = new this.orderModel(order);
     await model.save();
   }
 
-  async processCancelEvent(contractEvent, orderModel) {
-    await orderModel
+  async processCancelEvent(contractEvent) {
+    await this.orderModel
       .updateOne(
         { transactionId: contractEvent.args.id.toString() },
         {
-          $set: { active: false },
+          $set: { active: false, block: contractEvent.blockNumber },
         },
       )
       .exec();
   }
 
-  async processMatchEvent(contractEvent, orderModel) {
-    console.log(contractEvent);
+  async processMatchEvent(contractEvent) {
     const data = contractEvent.args;
-    const transaction = await orderModel
-      .findOne({ transactionId: data.matchedId })
+    const transaction = await this.orderModel
+      .findOne({ transactionId: data.matchedId.toString() })
       .exec();
+
+    //race condition hack
+    if (data.matchedId.toString() !== '0' && transaction === null) {
+      setTimeout(() => this.processMatchEvent(contractEvent), 1000);
+      return;
+    }
     if (transaction) {
       let leftToFill: BigNumber = BigNumber.from(transaction.amountLeftToFill);
       leftToFill = leftToFill.sub(data.amountReceived);
-      const newData = { amountLeftToFill: leftToFill.toString(), active: true };
+      const newData = {
+        amountLeftToFill: leftToFill.toString(),
+        active: true,
+        block: contractEvent.blockNumber,
+      };
       if (leftToFill.toString() === '0') {
         newData.active = false;
       }
-      await orderModel
+      await this.orderModel
         .updateOne(
           { transactionId: transaction.transactionId },
           { $set: newData },
@@ -153,24 +162,18 @@ export class OrdersService implements OnApplicationBootstrap {
     };
     if (filter.amountA === '0') {
       query.isMarket = true;
-    } else {
-      query.price = {
-        $lte: BigNumber.from(filter.amountB)
-          .div(BigNumber.from(filter.amountA))
-          .toString(),
-      };
     }
-    const documents = await this.orderModel.find(query).exec();
-    // console.log(
-    //   await this.contract.matchOrders(
-    //     documents.map((doc) => BigNumber.from(doc.transactionId)),
-    //     filter.tokenA,
-    //     filter.tokenB,
-    //     BigNumber.from(filter.amountA),
-    //     BigNumber.from(filter.amountB),
-    //     false,
-    //   ),
-    // );
+    let documents = await this.orderModel.find(query).exec();
+    if (!query.isMarket) {
+      documents = documents.filter((doc) => {
+        const orderAmountA = BigNumber.from(doc.amountA);
+        const orderAmountB = BigNumber.from(doc.amountB);
+        const userAmountA = BigNumber.from(filter.amountA);
+        const userAmountB = BigNumber.from(filter.amountB);
+
+        return orderAmountA.mul(userAmountA).lte(userAmountB.mul(orderAmountB));
+      });
+    }
     return documents.map((doc) => BigNumber.from(doc.transactionId));
   }
 }
