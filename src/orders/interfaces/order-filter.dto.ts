@@ -1,15 +1,15 @@
 import { ApiProperty } from '@nestjs/swagger';
 
 export class OrderFilter {
-  @ApiProperty()
+  @ApiProperty({ required: false })
   tokenA?: string;
 
-  @ApiProperty()
+  @ApiProperty({ required: false })
   tokenB?: string;
 
-  @ApiProperty()
+  @ApiProperty({ required: false })
   user?: string;
 
-  @ApiProperty()
+  @ApiProperty({ required: false })
   active?: string;
 }
