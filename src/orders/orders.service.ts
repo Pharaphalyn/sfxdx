@@ -39,28 +39,42 @@ export class OrdersService implements OnApplicationBootstrap {
       abi,
       wallet,
     );
-    let filter = this.contract.filters.OrderCreated();
+    const filterCreated = this.contract.filters.OrderCreated();
+    const filterMatched = this.contract.filters.OrderMatched();
+    const filterCancelled = this.contract.filters.OrderCancelled();
     console.log('Processing create events from block ' + startBlock);
-    let events = await this.contract.queryFilter(filter, startBlock);
-    for (const contractEvent of events) {
-      await this.processCreateEvent(contractEvent);
-    }
-    filter = this.contract.filters.OrderMatched();
+    await this.checkNewEvents(
+      filterCreated,
+      this.processCreateEvent,
+      startBlock,
+    );
     console.log('Processing match events from block ' + startBlock);
-    events = await this.contract.queryFilter(filter, startBlock);
-    for (const contractEvent of events) {
-      await this.processMatchedEvent(contractEvent);
-    }
-    filter = this.contract.filters.OrderCancelled();
+    await this.checkNewEvents(
+      filterMatched,
+      this.processMatchEvent,
+      startBlock,
+    );
     console.log('Processing cancel events from block ' + startBlock);
-    events = await this.contract.queryFilter(filter, startBlock);
-    for (const contractEvent of events) {
-      await this.processCancelEvent(contractEvent);
-    }
+    await this.checkNewEvents(
+      filterCancelled,
+      this.processCancelEvent,
+      startBlock,
+    );
     console.log('Up and running');
   }
 
-  async processCreateEvent(contractEvent) {
+  async checkNewEvents(filter, processFunc, startBlock) {
+    const events = await this.contract.queryFilter(filter, startBlock);
+    for (const contractEvent of events) {
+      await processFunc(contractEvent, this.orderModel);
+    }
+    this.contract.on(filter, (...data) =>
+      processFunc(data[data.length - 1], this.orderModel),
+    );
+  }
+
+  async processCreateEvent(contractEvent, orderModel) {
+    console.log(contractEvent);
     const args: OrderEvent = contractEvent.args as unknown as OrderEvent;
     const order: Order = {
       transactionId: args.id.toString(),
@@ -75,7 +89,7 @@ export class OrdersService implements OnApplicationBootstrap {
       block: contractEvent.blockNumber,
       active: true,
     };
-    const model = new this.orderModel(order);
+    const model = new orderModel(order);
     await model.save();
   }
 
@@ -90,7 +104,7 @@ export class OrdersService implements OnApplicationBootstrap {
       .exec();
   }
 
-  async processMatchedEvent(contractEvent) {
+  async processMatchEvent(contractEvent) {
     const data = contractEvent.args;
     const transaction = await this.orderModel
       .findOne({ transactionId: data.matchedId })
