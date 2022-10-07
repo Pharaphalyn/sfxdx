@@ -74,7 +74,6 @@ export class OrdersService implements OnApplicationBootstrap {
   }
 
   async processCreateEvent(contractEvent, orderModel) {
-    console.log(contractEvent);
     const args: OrderEvent = contractEvent.args as unknown as OrderEvent;
     const order: Order = {
       transactionId: args.id.toString(),
@@ -93,8 +92,8 @@ export class OrdersService implements OnApplicationBootstrap {
     await model.save();
   }
 
-  async processCancelEvent(contractEvent) {
-    await this.orderModel
+  async processCancelEvent(contractEvent, orderModel) {
+    await orderModel
       .updateOne(
         { transactionId: contractEvent.args.id.toString() },
         {
@@ -104,9 +103,10 @@ export class OrdersService implements OnApplicationBootstrap {
       .exec();
   }
 
-  async processMatchEvent(contractEvent) {
+  async processMatchEvent(contractEvent, orderModel) {
+    console.log(contractEvent);
     const data = contractEvent.args;
-    const transaction = await this.orderModel
+    const transaction = await orderModel
       .findOne({ transactionId: data.matchedId })
       .exec();
     if (transaction) {
@@ -116,7 +116,7 @@ export class OrdersService implements OnApplicationBootstrap {
       if (leftToFill.toString() === '0') {
         newData.active = false;
       }
-      await this.orderModel
+      await orderModel
         .updateOne(
           { transactionId: transaction.transactionId },
           { $set: newData },
@@ -168,15 +168,7 @@ export class OrdersService implements OnApplicationBootstrap {
     //     filter.tokenB,
     //     BigNumber.from(filter.amountA),
     //     BigNumber.from(filter.amountB),
-    //     true,
-    //   ),
-    // );
-    // console.log(
-    //   await this.contract.createOrder(
-    //     filter.tokenA,
-    //     filter.tokenB,
-    //     BigNumber.from(filter.amountA),
-    //     BigNumber.from(filter.amountB),
+    //     false,
     //   ),
     // );
     return documents.map((doc) => BigNumber.from(doc.transactionId));
