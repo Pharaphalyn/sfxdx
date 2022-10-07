@@ -81,7 +81,6 @@ export class OrdersService implements OnApplicationBootstrap {
       tokenB: args.tokenB,
       amountA: args.amountA.toString(),
       amountLeftToFill: args.amountB.toString(),
-      price: args.amountA.div(args.amountB).toString(),
       amountB: args.amountB.toString(),
       user: args.user,
       isMarket: args.isMarket,
@@ -174,6 +173,19 @@ export class OrdersService implements OnApplicationBootstrap {
         return orderAmountA.mul(userAmountA).lte(userAmountB.mul(orderAmountB));
       });
     }
+
+    // test match request
+    // console.log(
+    //   await this.contract.matchOrders(
+    //     documents.map((doc) => BigNumber.from(doc.transactionId)),
+    //     filter.tokenA,
+    //     filter.tokenB,
+    //     BigNumber.from(filter.amountA),
+    //     BigNumber.from(filter.amountB),
+    //     false,
+    //   ),
+    // );
+
     return documents.map((doc) => BigNumber.from(doc.transactionId));
   }
 }
