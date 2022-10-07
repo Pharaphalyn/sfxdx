@@ -1,7 +1,7 @@
 import { Controller, Get, Query } from '@nestjs/common';
 import { BigNumber } from 'nestjs-ethers';
-import { MatchFilter } from './interfaces/match-filter.interface';
-import { OrderFilter } from './interfaces/order-filter.interface';
+import { MatchFilter } from './interfaces/match-filter.dto';
+import { OrderFilter } from './interfaces/order-filter.dto';
 import { OrdersService } from './orders.service';
 import { Order } from './schemas/order.schema';
 

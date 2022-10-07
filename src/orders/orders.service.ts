@@ -10,9 +10,9 @@ import {
   BigNumber,
 } from 'nestjs-ethers';
 import { abi } from 'src/resources/contracts/order-controller';
-import { MatchFilter } from './interfaces/match-filter.interface';
+import { MatchFilter } from './interfaces/match-filter.dto';
 import { OrderEvent } from './interfaces/order-event.interface';
-import { OrderFilter } from './interfaces/order-filter.interface';
+import { OrderFilter } from './interfaces/order-filter.dto';
 import { Order, OrderDocument } from './schemas/order.schema';
 import { Constants as constants } from 'src/resources/config/constants';
 
